@@ -1,0 +1,16 @@
+{{if .Success}}
+	<h1>Order Accepted!</h1>
+{{else}}
+	<h1>Order Details</h1>
+	<form method="POST">
+		<label>ClOrdId:</label><br />
+		<input type="text" name="clordid"><br />
+		<label>Price:</label><br />
+		<input type="text" name="price"><br />
+		<label>Symbol:</label><br />
+		<input type="text" name="symbol"><br />
+		<label>Quantity:</label><br />
+		<input type="text" name="quantity"><br />
+		<input type="submit">
+	</form>
+{{end}}
