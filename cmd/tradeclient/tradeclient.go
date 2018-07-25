@@ -90,9 +90,10 @@ func main() {
 
 	forever := make(chan bool)
 
-	go func() {
+	go func(){
 		for d := range msgs {
 			log.Printf("Received a message: %s", d.Body)
+
 			flag.Parse()
 
 			cfgFileName := path.Join("config", "tradeclient.cfg")
@@ -131,6 +132,7 @@ func main() {
 			if err != nil {
 				fmt.Printf("%v\n", err)
 				}
+
 			initiator.Stop()
 		}
 	}()

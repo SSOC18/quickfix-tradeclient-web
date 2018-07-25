@@ -41,12 +41,67 @@ func queryClOrdID(clordid string) field.ClOrdIDField {
 }
 
 func querySide(side string) field.SideField {
-	fmt.Println("Side: "+side)
+
+	switch side {
+	case "1":
+		fmt.Println("Side: Buy")
+		side := string(enum.Side_BUY)
+		return field.NewSide(enum.Side(side)) 
+	case "2":
+		fmt.Println("Side: Sell")
+		side := string(enum.Side_SELL)
+		return field.NewSide(enum.Side(side))
+	case "3":
+		fmt.Println("Side: Sell Short")
+		side := string(enum.Side_SELL_SHORT)
+		return field.NewSide(enum.Side(side))
+	case "4":
+		fmt.Println("Side: Sell Short Exempt")
+		side := string(enum.Side_SELL_SHORT_EXEMPT)
+		return field.NewSide(enum.Side(side))
+	case "5":
+		fmt.Println("Side: Cross")
+		side := string(enum.Side_CROSS)
+		return field.NewSide(enum.Side(side))
+	case "6":
+		fmt.Println("Side: Cross Short")
+		side := string(enum.Side_CROSS_SHORT)
+		return field.NewSide(enum.Side(side))
+	case "7":
+		fmt.Println("Side: Cross Short Exempt")
+		side := "A"
+		return field.NewSide(enum.Side(side))
+	}
+
 	return field.NewSide(enum.Side(side))
+
 }
 
 func queryOrdType(f *field.OrdTypeField, ordtype string) field.OrdTypeField {
-	fmt.Println("OrdType: "+ordtype)
+
+	switch ordtype {
+	case "1":
+		fmt.Println("OrderType: Market")
+		ordtype := string(enum.OrdType_MARKET)
+		f.FIXString = quickfix.FIXString(ordtype)
+		return *f
+	case "2":
+		fmt.Println("OrderType: Limit")
+		ordtype := string(enum.OrdType_LIMIT)
+		f.FIXString = quickfix.FIXString(ordtype)
+		return *f
+	case "3":
+		fmt.Println("OrderType: Stop")
+		ordtype := string(enum.OrdType_STOP)
+		f.FIXString = quickfix.FIXString(ordtype)
+		return *f
+	case "4":
+		fmt.Println("OrderType: Stop Limit")
+		ordtype := string(enum.OrdType_STOP_LIMIT)
+		f.FIXString = quickfix.FIXString(ordtype)
+		return *f
+	}
+
 	f.FIXString = quickfix.FIXString(ordtype)
 	return *f
 }
@@ -63,7 +118,29 @@ func queryOrderQty(orderqty string) field.OrderQtyField {
 }
 
 func queryTimeInForce(timeinforce string) field.TimeInForceField {
-	fmt.Println("TimeInForce: "+timeinforce)
+
+	switch timeinforce {
+	case "1":
+		fmt.Println("TimeInForce: Day")
+		timeinforce := string(enum.TimeInForce_DAY)
+		return field.NewTimeInForce(enum.TimeInForce(timeinforce))
+	case "2":
+		fmt.Println("TimeInForce: IOC")
+		timeinforce := string(enum.TimeInForce_IMMEDIATE_OR_CANCEL)
+		return field.NewTimeInForce(enum.TimeInForce(timeinforce))
+	case "3":
+		fmt.Println("TimeInForce: OPG")
+		timeinforce := string(enum.TimeInForce_AT_THE_OPENING)
+		return field.NewTimeInForce(enum.TimeInForce(timeinforce))
+	case "4":
+		fmt.Println("TimeInForce: GTC")
+		timeinforce := string(enum.TimeInForce_GOOD_TILL_CANCEL)
+		return field.NewTimeInForce(enum.TimeInForce(timeinforce))
+	case "5":
+		fmt.Println("TimeInForce: GTX")
+		timeinforce := string(enum.TimeInForce_GOOD_TILL_CROSSING)
+		return field.NewTimeInForce(enum.TimeInForce(timeinforce))
+	}
 	return field.NewTimeInForce(enum.TimeInForce(timeinforce))
 }
 
@@ -78,40 +155,23 @@ func queryPrice(price string) field.PriceField {
 //	return field.NewStopPx(queryDecimal("Stop Price"), 2)
 //}
 
-func querySenderCompID() field.SenderCompIDField {
-	return field.NewSenderCompID(queryString("SenderCompID"))
+func querySenderCompID(senderid string) field.SenderCompIDField {
+	fmt.Println("SenderCompID: "+senderid)
+	return field.NewSenderCompID(senderid)
 }
 
-func queryTargetCompID() field.TargetCompIDField {
-	return field.NewTargetCompID(queryString("TargetCompID"))
+func queryTargetCompID(targetid string) field.TargetCompIDField {
+	fmt.Println("TargetCompID: "+targetid)
+	return field.NewTargetCompID(targetid)
 }
 
-func queryTargetSubID() field.TargetSubIDField {
-	return field.NewTargetSubID(queryString("TargetSubID"))
-}
-
-func queryConfirm(prompt string) bool {
-	fmt.Println()
-	fmt.Printf("%v?: ", prompt)
-
-	scanner := bufio.NewScanner(os.Stdin)
-	scanner.Scan()
-
-	return strings.ToUpper(scanner.Text()) == "Y"
+func queryTargetSubID(targetsubid string) field.TargetSubIDField {
+	fmt.Println("TargetSubID: "+targetsubid)
+	return field.NewTargetSubID(targetsubid)
 }
 
 type header interface {
 	Set(f quickfix.FieldWriter) *quickfix.FieldMap
-}
-
-func queryHeader(h header) {
-	h.Set(querySenderCompID())
-	h.Set(queryTargetCompID())
-	if ok := queryConfirm("Use a TargetSubID"); !ok {
-		return
-	}
-
-	h.Set(queryTargetSubID())
 }
 
 func queryNewOrderSingle50(neworder string) (msg *quickfix.Message) {
@@ -126,10 +186,9 @@ func queryNewOrderSingle50(neworder string) (msg *quickfix.Message) {
 	side := neworder2[4]
 	ordtype := neworder2[5]
 	timeinforce := neworder2[6]
-	//senderid := neworder2[7]
-	//targetid := neworder2[8]
-	//targetsubid := neworder2[9]
-	//targetsubid = targetsubid[0:len(targetsubid)-1]
+	senderid := neworder2[7]
+	targetid := neworder2[8]
+	targetsubid := neworder2[9][0:(len(neworder2[9])-1)]
 
 	order := fix50nos.New(queryClOrdID(clordid), querySide(side), field.NewTransactTime(time.Now()), queryOrdType(&ordType, ordtype))
 	order.SetHandlInst("1")
@@ -148,7 +207,11 @@ func queryNewOrderSingle50(neworder string) (msg *quickfix.Message) {
 	//}
 
 	msg = order.ToMessage()
-	queryHeader(&msg.Header)
+	h := &msg.Header
+	h.Set(querySenderCompID(senderid))
+	h.Set(queryTargetCompID(targetid))
+	h.Set(queryTargetSubID(targetsubid))
+	
 
 	return
 }

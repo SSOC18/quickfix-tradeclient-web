@@ -28,7 +28,7 @@ type OrderDetails struct {
 }
 
 func main(){
-	tmpl := template.Must(template.ParseFiles("forms3.html"))
+	tmpl := template.Must(template.ParseFiles("form.html"))
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
