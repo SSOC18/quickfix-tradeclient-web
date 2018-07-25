@@ -1,2 +1,7 @@
 
 webui/.DS_Store
+.DS_Store
+.Rhistory
+config/ordermatch.cfg
+config/executor.cfg
+config/executor_tls.cfg

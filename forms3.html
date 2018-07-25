@@ -1,0 +1,47 @@
+{{if .Success}}
+	<h1>Order Accepted!</h1>
+{{else}}
+	<h1>Order Details</h1>
+	<form method="POST">
+		<label>ClOrdId:</label><br />
+		<input type="text" name="clordid"><br />
+		<label>Price:</label><br />
+		<input type="text" name="price"><br />
+		<label>Symbol:</label><br />
+		<input type="text" name="symbol"><br />
+		<label>OrderQty:</label><br />
+		<input type="text" name="ordqty"><br />
+		<label>Side:</label><br />
+		<select id="side" name="side">
+			<option value="buy">Buy</option>
+			<option value="sell">Sell</option>
+			<option value="sell_short">Sell Short</option>
+			<option value="sell_short_exempt">Sell Short Exempt</option>
+			<option value="cross">Cross</option>
+			<option value="cross_short">Cross Short</option>
+			<option value="cross_short_exempt">Cross Short Exempt</option>
+		</select><br />
+		<label>OrdType:</label><br />		
+		<select id="ordtype" name="ordtype">
+			<option value="market">Market</option>
+			<option value="limit">Limit</option>
+			<option value="stop">Stop</option>
+			<option value="stop_limit">Stop Limit</option>
+		</select><br />
+		<label>TimeInForce:</label><br />
+		<select id="timeinforce" name="timeinforce">
+			<option value="Day">Day</option>
+			<option value="IOC">IOC</option>
+			<option value="OPG">OPG</option>
+			<option value="GTC">GTC</option>
+			<option value="GTX">GTX</option>
+		</select><br />
+		<label>SenderCompID:</label><br />
+		<input type="text" name="senderid"><br />
+		<label>TargetCompID:</label><br />
+		<input type="text" name="targetid"><br />
+		<label>TargetSubID:</label><br />
+		<input type="text" name="targetsubid"><br />
+		<input type="submit">
+	</form>
+{{end}}
