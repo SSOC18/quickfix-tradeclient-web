@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"net/http"
 	"github.com/streadway/amqp"
+	"path"
 )
 
 func failOnError(err error, msg string) {
@@ -28,7 +29,8 @@ type OrderDetails struct {
 }
 
 func main(){
-	tmpl := template.Must(template.ParseFiles("form.html"))
+	dir:="cmd/webui"
+	tmpl := template.Must(template.ParseFiles(path.Join(dir,"form.html")))
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -85,6 +87,6 @@ func main(){
 	
 	})
 
-	http.ListenAndServe(":8080", nil)
+	log.Fatal(http.ListenAndServe(":5004", nil))
 } 
 	

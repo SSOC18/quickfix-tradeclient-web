@@ -1,6 +1,34 @@
 QuickFix 1.1 TradeClient Web User Interface
 -------------------------------------------
 
+Web user interface + quickfix trade client
+
+The web UI takes an order from the user and passes it to RabbitMQ.
+
+The trade client subscribes to RabbitMQ and executes orders received.
+
+The trade client is based on the one from https://github.com/quickfixgo/examples
+
+
+Installation
+~~~~~~~~~~~~
+
+```
+go get github.com/streadway/amqp
+make install
+```
+
+Usage
+~~~~~
+
+```
+make run_tradeclient
+make run_webui
+```
+
+Other
+~~~~~
+
 Setting Up the User Interface:
 Can use makefile (make sure form.html is in the same bin folder)
 

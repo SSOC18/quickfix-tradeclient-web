@@ -7,7 +7,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/quickfixgo/examples/cmd/tradeclient/internal"
+	"github.com/SSOC18/quickfix-tradeclient-web/cmd/tradeclient/internal"
 	"github.com/quickfixgo/quickfix"
 	"github.com/streadway/amqp"
 )
