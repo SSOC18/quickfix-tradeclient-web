@@ -2,8 +2,8 @@ package main
 
 import (
 	"log"
-	"fmt"
 	"flag"
+	"fmt"
 	"os"
 	"path"
 
@@ -52,6 +52,7 @@ func (e TradeClient) FromApp(msg *quickfix.Message, sessionID quickfix.SessionID
 	fmt.Printf("FromApp: %s\n", msg.String())
 	return
 }
+
 func failOnError(err error, msg string) {
 	if err != nil {
 		log.Fatalf("%s: %s", msg, err)
@@ -59,6 +60,41 @@ func failOnError(err error, msg string) {
 }
 
 func main() {
+	flag.Parse()
+
+	cfgFileName := path.Join("config", "tradeclient.cfg")
+	if flag.NArg() > 0 {
+		cfgFileName = flag.Arg(0)
+	}
+
+	cfg, err := os.Open(cfgFileName)
+	if err != nil {
+		fmt.Printf("Error opening %v, %v\n", cfgFileName, err)
+		return
+	}
+
+	appSettings, err := quickfix.ParseSettings(cfg)
+	if err != nil {
+		fmt.Println("Error reading cfg,", err)
+		return
+	}
+
+	app := TradeClient{}
+	fileLogFactory, err := quickfix.NewFileLogFactory(appSettings)
+
+	if err != nil {
+		fmt.Println("Error creating file log factory,", err)
+		return
+	}
+
+	initiator, err := quickfix.NewInitiator(app, quickfix.NewMemoryStoreFactory(), appSettings, fileLogFactory)
+	if err != nil {
+		fmt.Printf("Unable to create Initiator: %s\n", err)
+		return
+	}
+
+	initiator.Start()
+
 	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
 	failOnError(err, "Failed to connect to RabbitMQ")
 	defer conn.Close()
@@ -93,47 +129,30 @@ func main() {
 	go func(){
 		for d := range msgs {
 			log.Printf("Received a message: %s", d.Body)
+			
+			action := internal.QueryAction(string(d.Body))
 
-			flag.Parse()
+			switch action {
+			case "1":
+				err = internal.QueryEnterOrder(string(d.Body))
 
-			cfgFileName := path.Join("config", "tradeclient.cfg")
-			if flag.NArg() > 0 {
-				cfgFileName = flag.Arg(0)
+			case "2":
+				err = internal.QueryCancelOrder(string(d.Body))
+
+			case "3":
+				err = internal.QueryMarketDataRequest(string(d.Body))
+
+			case"4":
+				initiator.Stop()
+
+			default:
+				err = fmt.Errorf("unknown action: '%v'", action)
+				initiator.Stop()
 			}
 
-			cfg, err := os.Open(cfgFileName)
-			if err != nil {
-				fmt.Printf("Error opening %v, %v\n", cfgFileName, err)
-				return
-			}
-
-			appSettings, err := quickfix.ParseSettings(cfg)
-			if err != nil {
-				fmt.Println("Error reading cfg,", err)
-				return
-			}
-
-			app := TradeClient{}
-			fileLogFactory, err := quickfix.NewFileLogFactory(appSettings)
-
-			if err != nil {
-				fmt.Println("Error creating file log factory,", err)
-				return
-			}
-
-			initiator, err := quickfix.NewInitiator(app, quickfix.NewMemoryStoreFactory(), appSettings, fileLogFactory)
-			if err != nil {
-				fmt.Printf("Unable to create Initiator: %s\n", err)
-				return
-			}
-
-			initiator.Start()
-			err = internal.QueryEnterOrder(string(d.Body))
 			if err != nil {
 				fmt.Printf("%v\n", err)
-				}
-
-			initiator.Stop()
+			}
 		}
 	}()
 

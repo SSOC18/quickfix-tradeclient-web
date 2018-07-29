@@ -3,6 +3,23 @@
 {{else}}
 	<h1>Order Details</h1>
 	<form method="POST">
+
+		<label>Action:</label><br />
+		<select id="action" name="action">
+			<option value="1">Enter New Order</option>
+			<option value="2">Cancel Order</option>
+			<option value="3">Market Data Request</option>
+			<option value="4">Quit</option>
+		</select><br />
+		<label>Version:</label><br />
+		<select id="version" name="version">
+			<option value="1">FIX 4.0</option>
+			<option value="2">FIX 4.1</option>
+			<option value="3">FIX 4.2</option>
+			<option value="4">FIX 4.3</option>
+			<option value="5">FIX 4.4</option>
+			<option value="6">FIX 1.1</option>
+		</select><br />
 		<label>ClOrdId:</label><br />
 		<input type="text" name="clordid"><br />
 		<label>Price:</label><br />

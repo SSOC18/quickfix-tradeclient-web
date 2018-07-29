@@ -1,21 +1,39 @@
 package internal
 
 import (
+	"bufio"
 	"fmt"
 	"time"
-	"bufio"
-	"os"
 
 	"github.com/quickfixgo/enum"
 	"github.com/quickfixgo/field"
 	"github.com/quickfixgo/quickfix"
 	"github.com/shopspring/decimal"
 
+	"os"
+	"strconv"
 	"strings"
 
+	fix40nos "github.com/quickfixgo/fix40/newordersingle"
+	fix41nos "github.com/quickfixgo/fix41/newordersingle"
+	fix42nos "github.com/quickfixgo/fix42/newordersingle"
+	fix43nos "github.com/quickfixgo/fix43/newordersingle"
+	fix44nos "github.com/quickfixgo/fix44/newordersingle"
 	fix50nos "github.com/quickfixgo/fix50/newordersingle"
 
+	fix40cxl "github.com/quickfixgo/fix40/ordercancelrequest"
+	fix41cxl "github.com/quickfixgo/fix41/ordercancelrequest"
+	fix42cxl "github.com/quickfixgo/fix42/ordercancelrequest"
+	fix43cxl "github.com/quickfixgo/fix43/ordercancelrequest"
+	fix44cxl "github.com/quickfixgo/fix44/ordercancelrequest"
+	fix50cxl "github.com/quickfixgo/fix50/ordercancelrequest"
+
+	fix42mdr "github.com/quickfixgo/fix42/marketdatarequest"
+	fix43mdr "github.com/quickfixgo/fix43/marketdatarequest"
+	fix44mdr "github.com/quickfixgo/fix44/marketdatarequest"
+	fix50mdr "github.com/quickfixgo/fix50/marketdatarequest"
 )
+
 func queryString(fieldName string) string {
 	fmt.Printf("%v: ", fieldName)
 	scanner := bufio.NewScanner(os.Stdin)
@@ -33,6 +51,64 @@ func queryDecimal(fieldName string) decimal.Decimal {
 	}
 
 	return val
+}
+
+func queryFieldChoices(fieldName string, choices []string, values []string) string {
+	for i, choice := range choices {
+		fmt.Printf("%v) %v\n", i+1, choice)
+	}
+
+	choiceStr := queryString(fieldName)
+	choice, err := strconv.Atoi(choiceStr)
+	if err != nil || choice < 1 || choice > len(choices) {
+		panic(fmt.Errorf("Invalid %v: %v", fieldName, choice))
+	}
+
+	if values == nil {
+		return choiceStr
+	}
+
+	return values[choice-1]
+}
+
+func QueryAction(neworder string) (string) {
+	neworder2 := strings.Split(neworder, " ")
+	action := neworder2[0]
+	action = action[1:len(action)]
+	return action
+
+}
+
+func queryVersion(neworder string) (string, error) {
+	neworder2 := strings.Split(neworder, " ")
+	version := neworder2[1]
+
+	switch version {
+	case "1":
+		fmt.Println("Version: FIX 4.0")
+		return quickfix.BeginStringFIX40, nil
+	case "2":
+		fmt.Println("Version: FIX 4.1")
+		return quickfix.BeginStringFIX41, nil
+	case "3":
+		fmt.Println("Version: FIX 4.2")
+		return quickfix.BeginStringFIX42, nil
+	case "4":
+		fmt.Println("Version: FIX 4.3")
+		return quickfix.BeginStringFIX43, nil
+	case "5":
+		fmt.Println("Version: FIX 4.4")
+		return quickfix.BeginStringFIX44, nil
+	case "6":
+		fmt.Println("Version: FIX 1.1")
+		return quickfix.BeginStringFIXT11, nil
+	}
+
+	return "", fmt.Errorf("unknown BeginString choice: %v", version)
+}
+
+func queryOrigClOrdID() field.OrigClOrdIDField {
+	return field.NewOrigClOrdID(("OrigClOrdID"))
 }
 
 func queryClOrdID(clordid string) field.ClOrdIDField {
@@ -150,10 +226,9 @@ func queryPrice(price string) field.PriceField {
 	return field.NewPrice(price2, 2)
 }
 
-//NOT DEFINED FOR STOP PRICES YET 
-//func queryStopPx() field.StopPxField {
-//	return field.NewStopPx(queryDecimal("Stop Price"), 2)
-//}
+func queryStopPx() field.StopPxField {
+	return field.NewStopPx(queryDecimal("Stop Price"), 2)
+}
 
 func querySenderCompID(senderid string) field.SenderCompIDField {
 	fmt.Println("SenderCompID: "+senderid)
@@ -170,25 +245,229 @@ func queryTargetSubID(targetsubid string) field.TargetSubIDField {
 	return field.NewTargetSubID(targetsubid)
 }
 
+func queryHeader(h header, senderid string, targetid string, targetsubid string) {
+	h.Set(querySenderCompID(senderid))
+	h.Set(queryTargetCompID(targetid))
+	h.Set(queryTargetSubID(targetsubid))
+}
+
 type header interface {
 	Set(f quickfix.FieldWriter) *quickfix.FieldMap
 }
+
+func queryConfirm(prompt string) bool {
+	fmt.Println()
+	fmt.Printf("%v?: ", prompt)
+
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Scan()
+
+	return strings.ToUpper(scanner.Text()) == "Y"
+}
+
+func queryNewOrderSingle40(neworder string) fix40nos.NewOrderSingle {
+	var ordType field.OrdTypeField
+	neworder2 := strings.Split(neworder, " ")
+	clordid := neworder2[2]
+	price := neworder2[3]
+	symbol := neworder2[4]
+	orderqty := neworder2[5]
+	side := neworder2[6]
+	ordtype := neworder2[7]
+	timeinforce := neworder2[8]
+	senderid := neworder2[9]
+	targetid := neworder2[10]
+	targetsubid := neworder2[11][0:(len(neworder2[11])-1)]
+
+	order := fix40nos.New(queryClOrdID(clordid), field.NewHandlInst("1"), querySymbol(symbol), querySide(side), queryOrderQty(orderqty), queryOrdType(&ordType, ordtype))
+
+	switch ordType.Value() {
+	case enum.OrdType_LIMIT, enum.OrdType_STOP_LIMIT:
+		order.Set(queryPrice(price))
+	}
+
+	switch ordType.Value() {
+	case enum.OrdType_STOP, enum.OrdType_STOP_LIMIT:
+		order.Set(queryStopPx())
+	}
+
+	order.Set(queryTimeInForce(timeinforce))
+	h := order.Header.Header
+	h.Set(querySenderCompID(senderid))
+	h.Set(queryTargetCompID(targetid))
+	h.Set(queryTargetSubID(targetsubid))
+
+	return order
+}
+
+func queryNewOrderSingle41(neworder string) (msg *quickfix.Message) {
+	var ordType field.OrdTypeField
+	neworder2 := strings.Split(neworder, " ")
+	clordid := neworder2[2]
+	price := neworder2[3]
+	symbol := neworder2[4]
+	orderqty := neworder2[5]
+	side := neworder2[6]
+	ordtype := neworder2[7]
+	timeinforce := neworder2[8]
+	senderid := neworder2[9]
+	targetid := neworder2[10]
+	targetsubid := neworder2[11][0:(len(neworder2[11])-1)]
+
+	order := fix41nos.New(queryClOrdID(clordid), field.NewHandlInst("1"), querySymbol(symbol), querySide(side), queryOrdType(&ordType, ordtype))
+	order.Set(queryOrderQty(orderqty))
+
+	switch ordType.Value() {
+	case enum.OrdType_LIMIT, enum.OrdType_STOP_LIMIT:
+		order.Set(queryPrice(price))
+	}
+
+	switch ordType.Value() {
+	case enum.OrdType_STOP, enum.OrdType_STOP_LIMIT:
+		order.Set(queryStopPx())
+	}
+
+	order.Set(queryTimeInForce(timeinforce))
+	msg = order.ToMessage()
+	h := &msg.Header
+	h.Set(querySenderCompID(senderid))
+	h.Set(queryTargetCompID(targetid))
+	h.Set(queryTargetSubID(targetsubid))
+
+	return
+}
+
+func queryNewOrderSingle42(neworder string) (msg *quickfix.Message) {
+	var ordType field.OrdTypeField
+	neworder2 := strings.Split(neworder, " ")
+	clordid := neworder2[2]
+	price := neworder2[3]
+	symbol := neworder2[4]
+	orderqty := neworder2[5]
+	side := neworder2[6]
+	ordtype := neworder2[7]
+	timeinforce := neworder2[8]
+	senderid := neworder2[9]
+	targetid := neworder2[10]
+	targetsubid := neworder2[11][0:(len(neworder2[11])-1)]
+
+	order := fix42nos.New(queryClOrdID(clordid), field.NewHandlInst("1"), querySymbol(symbol), querySide(side), field.NewTransactTime(time.Now()), queryOrdType(&ordType, ordtype))
+	order.Set(queryOrderQty(orderqty))
+
+	switch ordType.Value() {
+	case enum.OrdType_LIMIT, enum.OrdType_STOP_LIMIT:
+		order.Set(queryPrice(price))
+	}
+
+	switch ordType.Value() {
+	case enum.OrdType_STOP, enum.OrdType_STOP_LIMIT:
+		order.Set(queryStopPx())
+	}
+
+	order.Set(queryTimeInForce(timeinforce))
+	msg = order.ToMessage()
+	h := &msg.Header
+	h.Set(querySenderCompID(senderid))
+	h.Set(queryTargetCompID(targetid))
+	h.Set(queryTargetSubID(targetsubid))
+
+	return
+}
+
+func queryNewOrderSingle43(neworder string) (msg *quickfix.Message) {
+	var ordType field.OrdTypeField
+	neworder2 := strings.Split(neworder, " ")
+	clordid := neworder2[2]
+	price := neworder2[3]
+	symbol := neworder2[4]
+	orderqty := neworder2[5]
+	side := neworder2[6]
+	ordtype := neworder2[7]
+	timeinforce := neworder2[8]
+	senderid := neworder2[9]
+	targetid := neworder2[10]
+	targetsubid := neworder2[11][0:(len(neworder2[11])-1)]
+	
+	order := fix43nos.New(queryClOrdID(clordid), field.NewHandlInst("1"), querySide(side), field.NewTransactTime(time.Now()), queryOrdType(&ordType, ordtype))
+	order.Set(querySymbol(symbol))
+	order.Set(queryOrderQty(orderqty))
+
+	switch ordType.Value() {
+	case enum.OrdType_LIMIT, enum.OrdType_STOP_LIMIT:
+		order.Set(queryPrice(price))
+	}
+
+	switch ordType.Value() {
+	case enum.OrdType_STOP, enum.OrdType_STOP_LIMIT:
+		order.Set(queryStopPx())
+	}
+
+	order.Set(queryTimeInForce(timeinforce))
+	msg = order.ToMessage()
+	h := &msg.Header
+	h.Set(querySenderCompID(senderid))
+	h.Set(queryTargetCompID(targetid))
+	h.Set(queryTargetSubID(targetsubid))
+
+	return
+}
+
+func queryNewOrderSingle44(neworder string) (msg *quickfix.Message) {
+	var ordType field.OrdTypeField
+
+	neworder2 := strings.Split(neworder, " ")
+	clordid := neworder2[2]
+	price := neworder2[3]
+	symbol := neworder2[4]
+	orderqty := neworder2[5]
+	side := neworder2[6]
+	ordtype := neworder2[7]
+	timeinforce := neworder2[8]
+	senderid := neworder2[9]
+	targetid := neworder2[10]
+	targetsubid := neworder2[11][0:(len(neworder2[11])-1)]
+
+	order := fix44nos.New(queryClOrdID(clordid), querySide(side), field.NewTransactTime(time.Now()), queryOrdType(&ordType, ordtype))
+	order.SetHandlInst("1")
+	order.Set(querySymbol(symbol))
+	order.Set(queryOrderQty(orderqty))
+	order.Set(queryTimeInForce(timeinforce))
+
+	switch ordType.Value() {
+	case enum.OrdType_LIMIT, enum.OrdType_STOP_LIMIT:
+		order.Set(queryPrice(price))
+	}
+
+	//switch ordType.Value() {
+	//case enum.OrdType_STOP, enum.OrdType_STOP_LIMIT:
+	//	order.Set(queryStopPx())
+	//}
+
+	msg = order.ToMessage()
+	h := &msg.Header
+	h.Set(querySenderCompID(senderid))
+	h.Set(queryTargetCompID(targetid))
+	h.Set(queryTargetSubID(targetsubid))
+	
+
+	return
+}
+
 
 func queryNewOrderSingle50(neworder string) (msg *quickfix.Message) {
 	var ordType field.OrdTypeField
 
 	neworder2 := strings.Split(neworder, " ")
-	clordid := neworder2[0]
-	clordid = clordid[1:len(clordid)]
-	price := neworder2[1]
-	symbol := neworder2[2]
-	orderqty := neworder2[3]
-	side := neworder2[4]
-	ordtype := neworder2[5]
-	timeinforce := neworder2[6]
-	senderid := neworder2[7]
-	targetid := neworder2[8]
-	targetsubid := neworder2[9][0:(len(neworder2[9])-1)]
+	clordid := neworder2[2]
+	price := neworder2[3]
+	symbol := neworder2[4]
+	orderqty := neworder2[5]
+	side := neworder2[6]
+	ordtype := neworder2[7]
+	timeinforce := neworder2[8]
+	senderid := neworder2[9]
+	targetid := neworder2[10]
+	targetsubid := neworder2[11][0:(len(neworder2[11])-1)]
 
 	order := fix50nos.New(queryClOrdID(clordid), querySide(side), field.NewTransactTime(time.Now()), queryOrdType(&ordType, ordtype))
 	order.SetHandlInst("1")
@@ -216,6 +495,203 @@ func queryNewOrderSingle50(neworder string) (msg *quickfix.Message) {
 	return
 }
 
+func queryOrderCancelRequest40(neworder string) (msg *quickfix.Message) {
+	neworder2 := strings.Split(neworder, " ")
+	clordid := neworder2[2]
+	symbol := neworder2[4]
+	orderqty := neworder2[5]
+	side := neworder2[6]
+	senderid := neworder2[9]
+	targetid := neworder2[10]
+	targetsubid := neworder2[11][0:(len(neworder2[11])-1)]
+
+	cancel := fix40cxl.New(queryOrigClOrdID(), queryClOrdID(clordid), field.NewCxlType("F"), querySymbol(symbol), querySide(side), queryOrderQty(orderqty))
+	msg = cancel.ToMessage()
+	queryHeader(&msg.Header, senderid, targetid, targetsubid)
+	return
+}
+
+func queryOrderCancelRequest41(neworder string) (msg *quickfix.Message) {
+	neworder2 := strings.Split(neworder, " ")
+	clordid := neworder2[2]
+	symbol := neworder2[4]
+	orderqty := neworder2[5]
+	side := neworder2[6]
+	senderid := neworder2[9]
+	targetid := neworder2[10]
+	targetsubid := neworder2[11][0:(len(neworder2[11])-1)]
+
+	cancel := fix41cxl.New(queryOrigClOrdID(), queryClOrdID(clordid), querySymbol(symbol), querySide(side))
+	cancel.Set(queryOrderQty(orderqty))
+	msg = cancel.ToMessage()
+	queryHeader(&msg.Header, senderid, targetid, targetsubid)
+	return
+}
+
+func queryOrderCancelRequest42(neworder string) (msg *quickfix.Message) {
+	neworder2 := strings.Split(neworder, " ")
+	clordid := neworder2[2]
+	symbol := neworder2[4]
+	orderqty := neworder2[5]
+	side := neworder2[6]
+	senderid := neworder2[9]
+	targetid := neworder2[10]
+	targetsubid := neworder2[11][0:(len(neworder2[11])-1)]
+
+	cancel := fix42cxl.New(queryOrigClOrdID(), queryClOrdID(clordid), querySymbol(symbol), querySide(side), field.NewTransactTime(time.Now()))
+	cancel.Set(queryOrderQty(orderqty))
+	msg = cancel.ToMessage()
+	queryHeader(&msg.Header, senderid, targetid, targetsubid)
+	return
+}
+
+func queryOrderCancelRequest43(neworder string) (msg *quickfix.Message) {
+	neworder2 := strings.Split(neworder, " ")
+	clordid := neworder2[2]
+	symbol := neworder2[4]
+	orderqty := neworder2[5]
+	side := neworder2[6]
+	senderid := neworder2[9]
+	targetid := neworder2[10]
+	targetsubid := neworder2[11][0:(len(neworder2[11])-1)]
+
+	cancel := fix43cxl.New(queryOrigClOrdID(), queryClOrdID(clordid), querySide(side), field.NewTransactTime(time.Now()))
+	cancel.Set(querySymbol(symbol))
+	cancel.Set(queryOrderQty(orderqty))
+	msg = cancel.ToMessage()
+	queryHeader(&msg.Header, senderid, targetid, targetsubid)
+	return
+}
+
+func queryOrderCancelRequest44(neworder string) (msg *quickfix.Message) {
+	neworder2 := strings.Split(neworder, " ")
+	clordid := neworder2[2]
+	symbol := neworder2[4]
+	orderqty := neworder2[5]
+	side := neworder2[6]
+	senderid := neworder2[9]
+	targetid := neworder2[10]
+	targetsubid := neworder2[11][0:(len(neworder2[11])-1)]
+
+	cancel := fix44cxl.New(queryOrigClOrdID(), queryClOrdID(clordid), querySide(side), field.NewTransactTime(time.Now()))
+	cancel.Set(querySymbol(symbol))
+	cancel.Set(queryOrderQty(orderqty))
+
+	msg = cancel.ToMessage()
+	queryHeader(&msg.Header, senderid, targetid, targetsubid)
+	return
+}
+
+func queryOrderCancelRequest50(neworder string) (msg *quickfix.Message) {
+	neworder2 := strings.Split(neworder, " ")
+	clordid := neworder2[2]
+	symbol := neworder2[4]
+	orderqty := neworder2[5]
+	side := neworder2[6]
+	senderid := neworder2[9]
+	targetid := neworder2[10]
+	targetsubid := neworder2[11][0:(len(neworder2[11])-1)]
+
+	cancel := fix50cxl.New(queryOrigClOrdID(), queryClOrdID(clordid), querySide(side), field.NewTransactTime(time.Now()))
+	cancel.Set(querySymbol(symbol))
+	cancel.Set(queryOrderQty(orderqty))
+	msg = cancel.ToMessage()
+	queryHeader(&msg.Header, senderid, targetid, targetsubid)
+	return
+}
+
+func queryMarketDataRequest42(neworder string) fix42mdr.MarketDataRequest {
+	neworder2 := strings.Split(neworder, " ")
+	senderid := neworder2[9]
+	targetid := neworder2[10]
+	targetsubid := neworder2[11][0:(len(neworder2[11])-1)]
+
+	request := fix42mdr.New(field.NewMDReqID("MARKETDATAID"),
+		field.NewSubscriptionRequestType(enum.SubscriptionRequestType_SNAPSHOT),
+		field.NewMarketDepth(0),
+	)
+
+	entryTypes := fix42mdr.NewNoMDEntryTypesRepeatingGroup()
+	entryTypes.Add().SetMDEntryType(enum.MDEntryType_BID)
+	request.SetNoMDEntryTypes(entryTypes)
+
+	relatedSym := fix42mdr.NewNoRelatedSymRepeatingGroup()
+	relatedSym.Add().SetSymbol("LNUX")
+	request.SetNoRelatedSym(relatedSym)
+
+	queryHeader(request.Header, senderid, targetid, targetsubid)
+	return request
+}
+
+func queryMarketDataRequest43(neworder string) fix43mdr.MarketDataRequest {
+	neworder2 := strings.Split(neworder, " ")
+	senderid := neworder2[9]
+	targetid := neworder2[10]
+	targetsubid := neworder2[11][0:(len(neworder2[11])-1)]
+
+	request := fix43mdr.New(field.NewMDReqID("MARKETDATAID"),
+		field.NewSubscriptionRequestType(enum.SubscriptionRequestType_SNAPSHOT),
+		field.NewMarketDepth(0),
+	)
+
+	entryTypes := fix43mdr.NewNoMDEntryTypesRepeatingGroup()
+	entryTypes.Add().SetMDEntryType(enum.MDEntryType_BID)
+	request.SetNoMDEntryTypes(entryTypes)
+
+	relatedSym := fix43mdr.NewNoRelatedSymRepeatingGroup()
+	relatedSym.Add().SetSymbol("LNUX")
+	request.SetNoRelatedSym(relatedSym)
+
+	queryHeader(request.Header, senderid, targetid, targetsubid)
+	return request
+}
+
+func queryMarketDataRequest44(neworder string) fix44mdr.MarketDataRequest {
+	neworder2 := strings.Split(neworder, " ")
+	senderid := neworder2[9]
+	targetid := neworder2[10]
+	targetsubid := neworder2[11][0:(len(neworder2[11])-1)]
+
+	request := fix44mdr.New(field.NewMDReqID("MARKETDATAID"),
+		field.NewSubscriptionRequestType(enum.SubscriptionRequestType_SNAPSHOT),
+		field.NewMarketDepth(0),
+	)
+
+	entryTypes := fix44mdr.NewNoMDEntryTypesRepeatingGroup()
+	entryTypes.Add().SetMDEntryType(enum.MDEntryType_BID)
+	request.SetNoMDEntryTypes(entryTypes)
+
+	relatedSym := fix44mdr.NewNoRelatedSymRepeatingGroup()
+	relatedSym.Add().SetSymbol("LNUX")
+	request.SetNoRelatedSym(relatedSym)
+
+	queryHeader(request.Header, senderid, targetid, targetsubid)
+	return request
+}
+
+func queryMarketDataRequest50(neworder string) fix50mdr.MarketDataRequest {
+	neworder2 := strings.Split(neworder, " ")
+	senderid := neworder2[9]
+	targetid := neworder2[10]
+	targetsubid := neworder2[11][0:(len(neworder2[11])-1)]
+
+	request := fix50mdr.New(field.NewMDReqID("MARKETDATAID"),
+		field.NewSubscriptionRequestType(enum.SubscriptionRequestType_SNAPSHOT),
+		field.NewMarketDepth(0),
+	)
+
+	entryTypes := fix50mdr.NewNoMDEntryTypesRepeatingGroup()
+	entryTypes.Add().SetMDEntryType(enum.MDEntryType_BID)
+	request.SetNoMDEntryTypes(entryTypes)
+
+	relatedSym := fix50mdr.NewNoRelatedSymRepeatingGroup()
+	relatedSym.Add().SetSymbol("LNUX")
+	request.SetNoRelatedSym(relatedSym)
+
+	queryHeader(request.Header, senderid, targetid, targetsubid)
+	return request
+}
+
 func QueryEnterOrder(neworder string) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
@@ -223,6 +699,104 @@ func QueryEnterOrder(neworder string) (err error) {
 		}
 	}()
 
-	order := queryNewOrderSingle50(neworder)
+	var beginString string
+	beginString, err = queryVersion(neworder)
+	if err != nil {
+		return err
+	}
+
+	var order quickfix.Messagable
+	switch beginString {
+	case quickfix.BeginStringFIX40:
+		order = queryNewOrderSingle40(neworder)
+
+	case quickfix.BeginStringFIX41:
+		order = queryNewOrderSingle41(neworder)
+
+	case quickfix.BeginStringFIX42:
+		order = queryNewOrderSingle42(neworder)
+
+	case quickfix.BeginStringFIX43:
+		order = queryNewOrderSingle43(neworder)
+
+	case quickfix.BeginStringFIX44:
+		order = queryNewOrderSingle44(neworder)
+
+	case quickfix.BeginStringFIXT11:
+		order = queryNewOrderSingle50(neworder)
+	}
+
 	return quickfix.Send(order)
+}
+
+func QueryCancelOrder(neworder string) (err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			err = e.(error)
+		}
+	}()
+
+	var beginString string
+	beginString, err = queryVersion(neworder)
+	if err != nil {
+		return err
+	}
+
+	var cxl *quickfix.Message
+	switch beginString {
+	case quickfix.BeginStringFIX40:
+		cxl = queryOrderCancelRequest40(neworder)
+
+	case quickfix.BeginStringFIX41:
+		cxl = queryOrderCancelRequest41(neworder)
+
+	case quickfix.BeginStringFIX42:
+		cxl = queryOrderCancelRequest42(neworder)
+
+	case quickfix.BeginStringFIX43:
+		cxl = queryOrderCancelRequest43(neworder)
+
+	case quickfix.BeginStringFIX44:
+		cxl = queryOrderCancelRequest44(neworder)
+
+	case quickfix.BeginStringFIXT11:
+		cxl = queryOrderCancelRequest50(neworder)
+	}
+
+	if queryConfirm("Send Cancel") {
+		return quickfix.Send(cxl)
+	}
+
+	return
+}
+
+func QueryMarketDataRequest(neworder string) error {
+	beginString, err := queryVersion(neworder)
+	if err != nil {
+		return err
+	}
+
+	var req quickfix.Messagable
+	switch beginString {
+	case quickfix.BeginStringFIX42:
+		req = queryMarketDataRequest42(neworder)
+
+	case quickfix.BeginStringFIX43:
+		req = queryMarketDataRequest43(neworder)
+
+	case quickfix.BeginStringFIX44:
+		req = queryMarketDataRequest44(neworder)
+
+	case quickfix.BeginStringFIXT11:
+		req = queryMarketDataRequest50(neworder)
+
+	default:
+		return fmt.Errorf("No test for version %v", beginString)
+	}
+
+	if queryConfirm("Send MarketDataRequest") {
+		return quickfix.Send(req)
+	}
+
+	return nil
 }

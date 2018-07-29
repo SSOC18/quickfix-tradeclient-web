@@ -16,6 +16,8 @@ func failOnError(err error, msg string) {
 }
 
 type OrderDetails struct {
+	Action string
+	Version string
 	ClOrdId string
 	Price   string
 	Symbol string
@@ -31,7 +33,7 @@ type OrderDetails struct {
 func main(){
 	dir:="cmd/webui"
 	tmpl := template.Must(template.ParseFiles(path.Join(dir,"form.html")))
-
+	
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			tmpl.Execute(w, nil)
@@ -39,6 +41,8 @@ func main(){
 		}
 
   	details := OrderDetails{
+  		Action: r.FormValue("action"),
+  		Version: r.FormValue("version"),
 		ClOrdId: r.FormValue("clordid"),
 		Price:   r.FormValue("price"),
 		Symbol: r.FormValue("symbol"),

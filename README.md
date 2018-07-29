@@ -1,4 +1,4 @@
-QuickFix 1.1 TradeClient Web User Interface
+QuickFix TradeClient Web User Interface
 -------------------------------------------
 
 Web user interface + quickfix trade client
