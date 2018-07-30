@@ -5,3 +5,4 @@ webui/.DS_Store
 config/ordermatch.cfg
 config/executor.cfg
 config/executor_tls.cfg
+*.log
