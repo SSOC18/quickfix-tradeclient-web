@@ -4,14 +4,15 @@
 	<h1>Order Details</h1>
 	<form method="POST">
 
-		<label>Action:</label><br />
+        <label><b>Action:</b></label><br />
 		<select id="action" name="action">
 			<option value="1">Enter New Order</option>
 			<option value="2">Cancel Order</option>
 			<option value="3">Market Data Request</option>
 			<option value="4">Quit</option>
 		</select><br />
-		<label>Version:</label><br />
+        <p>&nbsp;</p>
+        <label><b>Version:</b></label><br />
 		<select id="version" name="version">
 			<option value="1">FIX 4.0</option>
 			<option value="2">FIX 4.1</option>
@@ -20,15 +21,23 @@
 			<option value="5">FIX 4.4</option>
 			<option value="6">FIX 1.1</option>
 		</select><br />
-		<label>ClOrdId:</label><br />
+        <p>&nbsp;</p>
+        <label><b>ClOrdId:</b></label><br />
 		<input type="text" name="clordid"><br />
-		<label>Price:</label><br />
+        <p>&nbsp;</p>
+        <label><b>Price:</b></label>
+        <p><i>Only accepting maximum 5% deviation from current live price</i></p>
 		<input type="text" name="price"><br />
-		<label>Symbol:</label><br />
+        <p>&nbsp;</p>
+		<label><b>Symbol:</b></label>
+        <p><i>Only accepting BTCUSD trades</i></p>
 		<input type="text" name="symbol"><br />
-		<label>OrderQty:</label><br />
+        <p>&nbsp;</p>
+        <label><b>OrderQty:</b></label>
+        <p><i>Only accepting less than 100</i></p>
 		<input type="text" name="ordqty"><br />
-		<label>Side:</label><br />
+        <p>&nbsp;</p>
+        <label><b>Side:</b></label><br />
 		<select id="side" name="side">
 			<option value="1">Buy</option>
 			<option value="2">Sell</option>
@@ -38,14 +47,17 @@
 			<option value="6">Cross Short</option>
 			<option value="7">Cross Short Exempt</option>
 		</select><br />
-		<label>OrdType:</label><br />		
+        <p>&nbsp;</p>
+        <label><b>OrdType:</b></label>		
+        <p><i>Limit orders only</i></p>
 		<select id="ordtype" name="ordtype">
 			<option value="1">Market</option>
 			<option value="2">Limit</option>
 			<option value="3">Stop</option>
 			<option value="4">Stop Limit</option>
 		</select><br />
-		<label>TimeInForce:</label><br />
+        <p>&nbsp;</p>
+        <label><b>TimeInForce:</b></label><br />
 		<select id="timeinforce" name="timeinforce">
 			<option value="1">Day</option>
 			<option value="2">IOC</option>
@@ -53,11 +65,14 @@
 			<option value="4">GTC</option>
 			<option value="5">GTX</option>
 		</select><br />
-		<label>SenderCompID:</label><br />
+        <p>&nbsp;</p>
+        <label><b>SenderCompID:</b></label><br />
 		<input type="text" name="senderid"><br />
-		<label>TargetCompID:</label><br />
+        <p>&nbsp;</p>
+        <label><b>TargetCompID:</b></label><br />
 		<input type="text" name="targetid"><br />
-		<label>TargetSubID:</label><br />
+        <p>&nbsp;</p>
+        <label><b>TargetSubID:</b></label><br />
 		<input type="text" name="targetsubid"><br />
 		<input type="submit">
 	</form>
