@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"github.com/streadway/amqp"
 	"io/ioutil"
-	"database/sql"
-	"github.com/lib/pq"
-	"github.com/shopspring/decimal"
+///	"database/sql"
+///	"github.com/lib/pq"
+///	"github.com/shopspring/decimal"
 
 )
 
@@ -43,7 +43,7 @@ type Page struct {
 func loadPage(title string) (*Page, error) {
     dir := "cmd/webui"
 	filename := title + ".txt"
-    body, err := ioutil.ReadFile(path.Join(dir,filename))
+    body, err := ioutil.ReadFile(path.Join(dir, filename))
   	if err != nil {
   		return nil, err
   	}
@@ -94,6 +94,8 @@ func main(){
 	)
 	failOnError(err, "Failed to declare a queue")
 
+	fmt.Println(q.Name)
+
 	body := details
 	err = ch.Publish(
 		"",     // exchange
@@ -111,53 +113,54 @@ func main(){
 	
 	})
 
-	fmt.Println("Connecting to cryppro_v0 database")
-    connStr := "user=mickael dbname=cryppro_v0 password=r5vPg3Q8 host=localhost port=postgresql"
-    db, err1 := sql.Open("postgres", connStr)
-	if err1 != nil {
-		log.Fatal(err1)
-	}
-    _ = pq.Efatal
-    var minimum_ask string
-    var maximum_bid string
-    err2 := db.QueryRow("SELECT minimum_ask, maximum_bid FROM btcprice ORDER BY index DESC LIMIT 1;").Scan(&minimum_ask, &maximum_bid)
-    fmt.Println("Mimimum Ask    |   Maximum Bid")
-    fmt.Println(minimum_ask, maximum_bid)
-    if err2 != nil {
-		log.Fatal(err2)
-	}
+	//fmt.Println("Connecting to cryppro_v0 database")
+    //connStr := "user=mickael dbname=cryppro_v0 password=r5vPg3Q8 host=localhost port=postgresql"
+    //db, err1 := sql.Open("postgres", connStr)
+	//if err1 != nil {
+	//	log.Fatal(err1)
+	//}
+    //_ = pq.Efatal
+    //var minimum_ask string
+    //var maximum_bid string
+    //err2 := db.QueryRow("SELECT minimum_ask, maximum_bid FROM btcprice ORDER BY index DESC LIMIT 1;").Scan(&minimum_ask, &maximum_bid)
+    //fmt.Println("Mimimum Ask    |   Maximum Bid")
+    //fmt.Println(minimum_ask, maximum_bid)
+    //if err2 != nil {
+	//	log.Fatal(err2)
+	//}
     
-    minask, _ := decimal.NewFromString(minimum_ask)
-    maxbid, _ := decimal.NewFromString(maximum_bid)
-    best_bidask1 := decimal.Avg(minask, maxbid)
-    best_bidask := best_bidask1.String()
+    //minask, _ := decimal.NewFromString(minimum_ask)
+    //maxbid, _ := decimal.NewFromString(maximum_bid)
+    //best_bidask1 := decimal.Avg(minask, maxbid)
+    //best_bidask := best_bidask1.String()
+    
 
-    price := []byte(best_bidask)
-    err := ioutil.WriteFile(path.Join(dir,"btcusd.txt"), price, 0644)
-    if err != nil {
-  			fmt.Println("Can't write new price to file text")
-  			return
-  		}
+    ///price := []byte(best_bidask)
+    ///err := ioutil.WriteFile(path.Join(dir,"btcusd.txt"), price, 0644)
+    ///if err != nil {
+  	///		fmt.Println("Can't write new price to file text")
+  	///		return
+  	///	}
 
-    tmpl1 := template.Must(template.ParseFiles(path.Join(dir,"view.html")))
-	http.HandleFunc("/view/", func(w http.ResponseWriter, r *http.Request) {
-  		p, err := loadPage("btcusd")
-  		if err != nil {
-  			fmt.Println("Can't access btcusd.txt for price")
-  			return
-  		}
+    ///tmpl1 := template.Must(template.ParseFiles(path.Join(dir,"view.html")))
+	///http.HandleFunc("/view/", func(w http.ResponseWriter, r *http.Request) {
+  	///	p, err := loadPage("btcusd")
+  	///	if err != nil {
+  	///		fmt.Println("Can't access btcusd.txt for price")
+  	///		return
+  	///	}
 
-  		err4 := tmpl1.ExecuteTemplate(w, "view.html", p)
-  		if err4 != nil {
-  			http.Error(w, err4.Error(), http.StatusInternalServerError)
-  		}
+  	///	err4 := tmpl1.ExecuteTemplate(w, "view.html", p)
+  	///	if err4 != nil {
+  	///		http.Error(w, err4.Error(), http.StatusInternalServerError)
+  	///	}
 
-  		if r.Method != http.MethodPost {
-			tmpl1.Execute(w, nil)
-			return
-		}
+  	///	if r.Method != http.MethodPost {
+	///		tmpl1.Execute(w, nil)
+	///		return
+	///	}
 
-	})
+	///})
 
 	log.Fatal(http.ListenAndServe(":5004", nil))
 } 
